@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 from outlook_scheduler import schedule_teams_meeting
 import os
 
-# Path to JSON file
-file_paths = r"C:\Users\Administrator\PycharmProjects\ChatbotCode8Jan\responses.json"
+# Path to JSON file - use relative path for deployment
+file_paths = os.path.join(os.path.dirname(__file__), "responses.json")
 
 def load_responses(file_paths):
     """Load responses from a JSON file."""
@@ -162,6 +162,7 @@ def submit_schedule():
 
 
 if __name__ == "__main__":
-   app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
 
 

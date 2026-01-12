@@ -1,4 +1,3 @@
-
 import os
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -7,32 +6,52 @@ import openai
 from dotenv import load_dotenv
 load_dotenv()
 
-os.environ["SSL_CERT_FILE"] = "./cacert.pem"
-os.environ["REQUESTS_CA_BUNDLE"] = "./cacert.pem"
-OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+# Set SSL cert paths if cacert.pem exists
+cacert_path = os.path.join(os.path.dirname(__file__), "cacert.pem")
+if os.path.exists(cacert_path):
+    os.environ["SSL_CERT_FILE"] = cacert_path
+    os.environ["REQUESTS_CA_BUNDLE"] = cacert_path
 
-if not OPENAI_KEY or not OPENAI_KEY.startswith("sk-"):
-    raise ValueError("❌ Please set a valid OpenAI API key in environment variable OPENAI_API_KEY.")
+# Lazy initialization - don't check API key at import time
+OPENAI_KEY = None
+db = None
+retriever = None
+llm = None
+embeddings = None
 
-openai.api_key = OPENAI_KEY
-
-# ---------------------------
-# 2. Load FAISS index
-# ---------------------------
-INDEX_PATH = r"C:\Users\Administrator\PycharmProjects\ChatbotCode8Jan\softdel_index"
-
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-db = FAISS.load_local(INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
-retriever = db.as_retriever(search_kwargs={"k": 3})  # fetch top 3 docs
-
-# ---------------------------
-# 3. Setup OpenAI LLM
-# ---------------------------
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2)
+def _initialize_qa():
+    """Initialize QA components lazily when first needed."""
+    global OPENAI_KEY, db, retriever, llm, embeddings
+    
+    if db is not None:
+        return  # Already initialized
+    
+    OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+    
+    if not OPENAI_KEY or not OPENAI_KEY.startswith("sk-"):
+        raise ValueError("❌ Please set a valid OpenAI API key in environment variable OPENAI_API_KEY.")
+    
+    openai.api_key = OPENAI_KEY
+    
+    # Use relative path for index
+    INDEX_PATH = os.path.join(os.path.dirname(__file__), "softdel_index")
+    
+    if not os.path.exists(INDEX_PATH):
+        raise FileNotFoundError(f"❌ FAISS index not found at {INDEX_PATH}")
+    
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    db = FAISS.load_local(INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
+    retriever = db.as_retriever(search_kwargs={"k": 3})  # fetch top 3 docs
+    
+    # Setup OpenAI LLM
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2)
 
 
 
 def answer_query(query: str):
+    """Answer query using RAG."""
+    _initialize_qa()  # Initialize on first use
+    
     docs = retriever.invoke(query)
     context = "\n".join([doc.page_content for doc in docs])
 
@@ -102,6 +121,10 @@ def get_qan_answer(user_input: str):
     """
     try:
         return answer_query(user_input)
+    except ValueError as e:
+        # API key error - return friendly message
+        print(f"Error in QA module: {e}")
+        return "❌ I could not find the answer for that topic. 📞 Would you like me to schedule a call with one of our executives?"
     except Exception as e:
         print(f"Error in QA module: {e}")
         return "❌ I could not find the answer for that topic. 📞 Would you like me to schedule a call with one of our executives?"
