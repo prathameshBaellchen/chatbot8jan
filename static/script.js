@@ -788,45 +788,8 @@ function showScheduleForm(event) {
       
       <div>
         <label for="time">Time:</label>
-        <div style="position: relative; display: flex; align-items: center; gap: 8px;">
-          <input class="input-for-time" type="time" id="time" style="flex: 1;" />
-          <button type="button" id="time-picker-btn" class="time-picker-btn" title="Click to pick time">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </button>
-        </div>
+        <input class="input-for-time" type="time" id="time"  />
         <div style="margin-top: 3px;" class="error-message" id="error-time"></div>
-        <div id="time-picker-popup" class="time-picker-popup" style="display: none;">
-          <div class="time-picker-container">
-            <div class="time-picker-header">
-              <span>Select Time</span>
-              <button type="button" class="time-picker-close">&times;</button>
-            </div>
-            <div class="time-picker-body">
-              <div class="time-display">
-                <input type="number" id="picker-hour" min="0" max="23" value="14" />
-                <span>:</span>
-                <input type="number" id="picker-minute" min="0" max="59" value="0" step="15" />
-              </div>
-              <div class="time-presets">
-                <button type="button" class="time-preset-btn" data-time="09:00">9:00 AM</button>
-                <button type="button" class="time-preset-btn" data-time="10:00">10:00 AM</button>
-                <button type="button" class="time-preset-btn" data-time="11:00">11:00 AM</button>
-                <button type="button" class="time-preset-btn" data-time="12:00">12:00 PM</button>
-                <button type="button" class="time-preset-btn" data-time="13:00">1:00 PM</button>
-                <button type="button" class="time-preset-btn" data-time="14:00">2:00 PM</button>
-                <button type="button" class="time-preset-btn" data-time="15:00">3:00 PM</button>
-                <button type="button" class="time-preset-btn" data-time="16:00">4:00 PM</button>
-              </div>
-            </div>
-            <div class="time-picker-footer">
-              <button type="button" class="time-picker-cancel">Cancel</button>
-              <button type="button" class="time-picker-apply">Apply</button>
-            </div>
-          </div>
-        </div>
       </div>
       <div id="duration-div">
         <label for="duration">Duration (in minutes):</label>
@@ -841,24 +804,9 @@ function showScheduleForm(event) {
 `;
     chatDisplay.appendChild(formContainer);
     chatDisplay.scrollTop = chatDisplay.scrollHeight;
-    
-    // Wait a bit for DOM to be ready
-    setTimeout(() => {
-        const meetingForm = document.getElementById('callForm');
-        if (!meetingForm) {
-            console.log("Form not found");
-            return;
-        }
-        
-        // Check if listener already attached
-        if (meetingForm.dataset.listenerAttached === 'true') {
-            return;
-        }
-        meetingForm.dataset.listenerAttached = 'true';
-        
-        // Initialize time picker
-        initializeTimePicker();
-        
+    const meetingForm = document.getElementById('callForm');
+//    if (!meetingForm) return;
+    if (meetingForm) {
         meetingForm.addEventListener("submit", async function (event) {
             event.preventDefault();
             
@@ -960,13 +908,9 @@ function showScheduleForm(event) {
                     `;
                     meetingForm.parentElement.appendChild(successMessage);
                     
-                    // Wait 5 seconds, then close chatbox
+                    // Wait 5 seconds, then reset
                     setTimeout(() => {
                         clearChat();
-                        const chatContainer = document.getElementById("chat-container");
-                        if (chatContainer) chatContainer.style.display = "none";
-                        const avatar = document.getElementById("chatbot-avatar");
-                        if (avatar) avatar.style.display = "flex";
                         meetingForm.reset();
                         successMessage.remove();
                     }, 5000);
@@ -979,10 +923,10 @@ function showScheduleForm(event) {
                         submitButton.textContent = originalButtonText;
                     }
                     // Show error message
-                    alert(data.message || "❌ Error submitting form. Please try again.");
+                    alert(data.message || "Error submitting form. Please try again.");
                 }
             } catch (error) {
-                console.error('❌ Error:', error);
+                console.error('Error:', error);
                 // Re-enable button on error
                 if (submitButton) {
                     submitButton.disabled = false;
@@ -990,108 +934,20 @@ function showScheduleForm(event) {
                     submitButton.style.cursor = 'pointer';
                     submitButton.textContent = originalButtonText;
                 }
-                alert("❌ Error submitting form. Please try again.");
+                alert("Error submitting form. Please try again.");
             }
 
             chatDisplay.scrollTop = chatDisplay.scrollHeight;
         });
-    }, 100);
-}
+    } else {
+        console.log("Form not found");
+    }
 }
 
 // Hide schedule form
 function hideScheduleForm() {
     const form = document.getElementById("schedule-form");
     if (form) form.remove();
-}
-
-// Time Picker Functionality
-function initializeTimePicker() {
-    const timePickerBtn = document.getElementById('time-picker-btn');
-    const timePickerPopup = document.getElementById('time-picker-popup');
-    const timeInput = document.getElementById('time');
-    const pickerHour = document.getElementById('picker-hour');
-    const pickerMinute = document.getElementById('picker-minute');
-    const timePresetBtns = document.querySelectorAll('.time-preset-btn');
-    const applyBtn = document.querySelector('.time-picker-apply');
-    const cancelBtn = document.querySelector('.time-picker-cancel');
-    const closeBtn = document.querySelector('.time-picker-close');
-    
-    if (!timePickerBtn || !timePickerPopup) return;
-    
-    // Open time picker
-    timePickerBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Set current time if time input has value
-        if (timeInput && timeInput.value) {
-            const [hour, minute] = timeInput.value.split(':');
-            if (pickerHour) pickerHour.value = parseInt(hour) || 14;
-            if (pickerMinute) pickerMinute.value = parseInt(minute) || 0;
-        }
-        
-        timePickerPopup.style.display = 'block';
-    });
-    
-    // Close time picker
-    function closeTimePicker() {
-        timePickerPopup.style.display = 'none';
-    }
-    
-    if (closeBtn) closeBtn.addEventListener('click', closeTimePicker);
-    if (cancelBtn) cancelBtn.addEventListener('click', closeTimePicker);
-    
-    // Close on outside click
-    timePickerPopup.addEventListener('click', function(e) {
-        if (e.target === timePickerPopup) {
-            closeTimePicker();
-        }
-    });
-    
-    // Apply time from presets
-    timePresetBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const time = this.getAttribute('data-time');
-            if (timeInput) timeInput.value = time;
-            const [hour, minute] = time.split(':');
-            if (pickerHour) pickerHour.value = parseInt(hour);
-            if (pickerMinute) pickerMinute.value = parseInt(minute);
-        });
-    });
-    
-    // Apply custom time
-    if (applyBtn) {
-        applyBtn.addEventListener('click', function() {
-            if (pickerHour && pickerMinute && timeInput) {
-                const hour = String(pickerHour.value || 0).padStart(2, '0');
-                const minute = String(pickerMinute.value || 0).padStart(2, '0');
-                timeInput.value = `${hour}:${minute}`;
-                closeTimePicker();
-            }
-        });
-    }
-    
-    // Format hour and minute inputs
-    if (pickerHour) {
-        pickerHour.addEventListener('change', function() {
-            let val = parseInt(this.value) || 0;
-            if (val < 0) val = 0;
-            if (val > 23) val = 23;
-            this.value = val;
-        });
-    }
-    
-    if (pickerMinute) {
-        pickerMinute.addEventListener('change', function() {
-            let val = parseInt(this.value) || 0;
-            if (val < 0) val = 0;
-            if (val > 59) val = 59;
-            // Round to nearest 15 minutes
-            val = Math.round(val / 15) * 15;
-            this.value = val;
-        });
-    }
 }
 
 // Submit form handler
