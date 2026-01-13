@@ -138,18 +138,20 @@ init_db()
 
 @app.route("/submit_schedule", methods=["POST"])
 def submit_schedule():
-    data = request.get_json()
-    print(" user data", data['name'])
-
     try:
         # Extract fields
         data = request.get_json()
-        name = data['name']
-        mobile = data['mobile']
-        email = data['email']
-        date = data['date']
-        time = data['time']
-        duration = data['duration']
+        if not data:
+            return jsonify({"success": False, "message": "❌ No data received"})
+        
+        name = data.get('name', '')
+        mobile = data.get('mobile', '')
+        email = data.get('email', '')
+        date = data.get('date', '')
+        time = data.get('time', '')
+        duration = data.get('duration', '')
+        
+        print(" user data", name)
 
         # Combine date and time into datetime object
       #  time_from = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
@@ -161,13 +163,23 @@ def submit_schedule():
         #time_from_str = time_from.isoformat()
         #time_to_str = time_to.isoformat()
 
+        # Validate required fields
+        if not all([name, mobile, email, date, time, duration]):
+            return jsonify({"success": False, "message": "❌ All fields are required"})
+        
+        # Convert duration to integer
+        try:
+            duration_int = int(duration)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "❌ Invalid duration value"})
+        
         # Save to DB
         # Call Outlook scheduler
         result = schedule_teams_meeting(
             subject=f"Call with {name}",
             date_input=date,
             start_time_input=time,
-            duration=duration,
+            duration=duration_int,
             attendees_input=email
         )
         print(" scheduler result", result)
@@ -179,7 +191,7 @@ def submit_schedule():
             c.execute("""
                 INSERT INTO meetings (name, mobile, email, meeting_date, meeting_time, meeting_duration)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (name, mobile, email, date, time, duration))
+            """, (name, mobile, email, date, time, duration_int))
             conn.commit()
             conn.close()
 
@@ -187,7 +199,9 @@ def submit_schedule():
 
     except Exception as e:
         print("Error:", e)
-        return jsonify({"success": False})
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"❌ Error processing request: {str(e)}"})
 
 # def get_data_from_db():
 #     conn = sqlite3.connect('scheduler.db')  # your .db file
@@ -205,6 +219,8 @@ def submit_schedule():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    # Use debug=True for local testing, debug=False for production
+    debug_mode = os.environ.get("FLASK_DEBUG", "True").lower() == "true"
+    app.run(host="127.0.0.1", port=port, debug=debug_mode)
 
 

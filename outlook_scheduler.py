@@ -10,8 +10,10 @@ def schedule_teams_meeting(subject, date_input, start_time_input, duration, atte
     # Check if running on Windows
     if platform.system() == "Windows":
         try:
-            import pythoncom
-            import win32com.client
+            # pywin32 is required for Windows Outlook integration
+            # Install with: pip install pywin32
+            import pythoncom  # type: ignore
+            import win32com.client  # type: ignore
             
             pythoncom.CoInitialize()
             outlook = win32com.client.Dispatch("Outlook.Application")
@@ -36,11 +38,19 @@ def schedule_teams_meeting(subject, date_input, start_time_input, duration, atte
             for email in attendees:
                 meeting.Recipients.Add(email)
 
+            # Resolve recipients to ensure they're valid
+            meeting.Recipients.ResolveAll()
+            
+            # Save the meeting first
             meeting.Save()
+            
+            # Send the meeting invitation
+            # Note: This will send immediately if Outlook is configured
+            # If Outlook requires user confirmation, the meeting will be in Outbox
             meeting.Send()
-
+            
             pythoncom.CoUninitialize()
-            return {"success": True, "message": "✅ Teams meeting scheduled successfully!"}
+            return {"success": True, "message": "✅ Teams meeting scheduled and sent successfully! Check your Outlook Outbox/Sent Items."}
             
         except ImportError:
             # win32com not available

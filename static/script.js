@@ -55,7 +55,6 @@ function handleOptionClick(button, message) {
 
     } else if (message === "schedule call") {
         showScheduleForm();
-        chatDisplay.appendChild(formContainer);
     //chatDisplay.scrollTop = chatDisplay.scrollHeight;
     }else if (message === "services") {
         const botResponse = createBotMessage("Our services are designed to cater to your needs. Here are the details:");
@@ -789,8 +788,45 @@ function showScheduleForm(event) {
       
       <div>
         <label for="time">Time:</label>
-        <input class="input-for-time" type="time" id="time"  />
+        <div style="position: relative; display: flex; align-items: center; gap: 8px;">
+          <input class="input-for-time" type="time" id="time" style="flex: 1;" />
+          <button type="button" id="time-picker-btn" class="time-picker-btn" title="Click to pick time">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </button>
+        </div>
         <div style="margin-top: 3px;" class="error-message" id="error-time"></div>
+        <div id="time-picker-popup" class="time-picker-popup" style="display: none;">
+          <div class="time-picker-container">
+            <div class="time-picker-header">
+              <span>Select Time</span>
+              <button type="button" class="time-picker-close">&times;</button>
+            </div>
+            <div class="time-picker-body">
+              <div class="time-display">
+                <input type="number" id="picker-hour" min="0" max="23" value="14" />
+                <span>:</span>
+                <input type="number" id="picker-minute" min="0" max="59" value="0" step="15" />
+              </div>
+              <div class="time-presets">
+                <button type="button" class="time-preset-btn" data-time="09:00">9:00 AM</button>
+                <button type="button" class="time-preset-btn" data-time="10:00">10:00 AM</button>
+                <button type="button" class="time-preset-btn" data-time="11:00">11:00 AM</button>
+                <button type="button" class="time-preset-btn" data-time="12:00">12:00 PM</button>
+                <button type="button" class="time-preset-btn" data-time="13:00">1:00 PM</button>
+                <button type="button" class="time-preset-btn" data-time="14:00">2:00 PM</button>
+                <button type="button" class="time-preset-btn" data-time="15:00">3:00 PM</button>
+                <button type="button" class="time-preset-btn" data-time="16:00">4:00 PM</button>
+              </div>
+            </div>
+            <div class="time-picker-footer">
+              <button type="button" class="time-picker-cancel">Cancel</button>
+              <button type="button" class="time-picker-apply">Apply</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div id="duration-div">
         <label for="duration">Duration (in minutes):</label>
@@ -805,115 +841,161 @@ function showScheduleForm(event) {
 `;
     chatDisplay.appendChild(formContainer);
     chatDisplay.scrollTop = chatDisplay.scrollHeight;
-    const meetingForm = document.getElementById('callForm');
-//    if (!meetingForm) return;
-    if (meetingForm) {
-    meetingForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
-
-        const name = document.getElementById('name').value.trim();
-        const mobile = document.getElementById('mobile').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const date = document.getElementById('date').value;
-        const time = document.getElementById('time').value;
-        const duration = document.getElementById('duration').value;
-
-        // Debug in console
-        console.log("Captured data:", { name, mobile, email, date, time, duration });
-
-        // Validation Start
-       // Clear old error messages
-document.querySelectorAll('.error-message').forEach(e => e.textContent = '');
-
-// Validation
-let hasError = false;
-
-if (!name || !mobile || !email || !date || !time || !duration) {
-  if (!name) document.getElementById("error-name").textContent = "Please enter your name.";
-  if (!mobile) document.getElementById("error-mobile").textContent = "Please enter your mobile number.";
-  if (!email) document.getElementById("error-email").textContent = "Please enter your email.";
-  if (!date) document.getElementById("error-date").textContent = "Please select a date.";
-  if (!time) document.getElementById("error-time").textContent = "Please select a time.";
-  if (!duration) document.getElementById("error-duration").textContent = "Please enter duration.";
-  hasError = true;
-}
-
-if (name && !/^[a-zA-Z\s]+$/.test(name)) {
-  document.getElementById("error-name").textContent = "Name should contain only letters.";
-  hasError = true;
-}
-
-if (mobile && !/^\d{10}$/.test(mobile)) {
-  document.getElementById("error-mobile").textContent = "Enter a valid 10-digit mobile number.";
-  hasError = true;
-}
-
-if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-  document.getElementById("error-email").textContent = "Enter a valid email address.";
-  hasError = true;
-}
-
-const today = new Date().toISOString().split("T")[0];
-if (date && date < today) {
-  document.getElementById("error-date").textContent = "Date cannot be in the past.";
-  hasError = true;
-}
-
-if (duration && (isNaN(duration) || duration <= 0)) {
-  document.getElementById("error-duration").textContent = "Duration must be a positive number.";
-  hasError = true;
-}
-
-// Stop if any errors
-if (hasError) return;
-        // Validation End
-
-        try {
-            const response =  await fetch('/submit_schedule', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, mobile, email, date, time, duration })
-            });
-
-            const data = await response.json();
-            console.log("Response from backend:", data);
-            //alert(data.message);
-            if(data.message.includes("scheduled successfully!")){
-            meetingForm.style.display = "none";
-            // Show success message
-        const successMessage = document.createElement('div');
-        successMessage.innerHTML = `
-            <div class="successMsgStyle">
-                Thank you for scheduling a meeting with our executive! <br/>
-                We’ll get in touch with you shortly to confirm your appointment.
-            </div>
-        `;
-        meetingForm.parentElement.appendChild(successMessage);
-            //clearChat();
-            //chatContainer.style.display = "none";
-            //avatar.style.display = "flex";
-            //meetingForm.reset();
-             // Wait 5 seconds, then close chatbox
-            setTimeout(() => {
-                clearChat();
-                chatContainer.style.display = "none";
-                avatar.style.display = "flex";
-                meetingForm.reset();
-                successMessage.remove(); // optional: remove the message after closing
-            }, 5000);
-            
-            }
-//               meetingForm.reset();
-        } catch (error) {
-            console.error('❌ Error:', error);
-            alert("❌ Error submitting form.");
+    
+    // Wait a bit for DOM to be ready
+    setTimeout(() => {
+        const meetingForm = document.getElementById('callForm');
+        if (!meetingForm) {
+            console.log("Form not found");
+            return;
         }
+        
+        // Check if listener already attached
+        if (meetingForm.dataset.listenerAttached === 'true') {
+            return;
+        }
+        meetingForm.dataset.listenerAttached = 'true';
+        
+        // Initialize time picker
+        initializeTimePicker();
+        
+        meetingForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            
+            // Get submit button and disable it during submission
+            const submitButton = meetingForm.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton ? submitButton.textContent : '';
+            
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.style.opacity = '0.6';
+                submitButton.style.cursor = 'not-allowed';
+                submitButton.textContent = 'Scheduling...';
+            }
 
-     chatDisplay.scrollTop = chatDisplay.scrollHeight;
-});
-}
-else{
- console.log("form:", false);
+            const name = document.getElementById('name').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const duration = document.getElementById('duration').value;
+
+            // Debug in console
+            console.log("Captured data:", { name, mobile, email, date, time, duration });
+
+            // Validation Start
+            // Clear old error messages
+            document.querySelectorAll('.error-message').forEach(e => e.textContent = '');
+
+            // Validation
+            let hasError = false;
+
+            if (!name || !mobile || !email || !date || !time || !duration) {
+                if (!name) document.getElementById("error-name").textContent = "Please enter your name.";
+                if (!mobile) document.getElementById("error-mobile").textContent = "Please enter your mobile number.";
+                if (!email) document.getElementById("error-email").textContent = "Please enter your email.";
+                if (!date) document.getElementById("error-date").textContent = "Please select a date.";
+                if (!time) document.getElementById("error-time").textContent = "Please select a time.";
+                if (!duration) document.getElementById("error-duration").textContent = "Please enter duration.";
+                hasError = true;
+            }
+
+            if (name && !/^[a-zA-Z\s]+$/.test(name)) {
+                document.getElementById("error-name").textContent = "Name should contain only letters.";
+                hasError = true;
+            }
+
+            if (mobile && !/^\d{10}$/.test(mobile)) {
+                document.getElementById("error-mobile").textContent = "Enter a valid 10-digit mobile number.";
+                hasError = true;
+            }
+
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                document.getElementById("error-email").textContent = "Enter a valid email address.";
+                hasError = true;
+            }
+
+            const today = new Date().toISOString().split("T")[0];
+            if (date && date < today) {
+                document.getElementById("error-date").textContent = "Date cannot be in the past.";
+                hasError = true;
+            }
+
+            if (duration && (isNaN(duration) || duration <= 0)) {
+                document.getElementById("error-duration").textContent = "Duration must be a positive number.";
+                hasError = true;
+            }
+
+            // Stop if any errors - re-enable button
+            if (hasError) {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.style.opacity = '1';
+                    submitButton.style.cursor = 'pointer';
+                    submitButton.textContent = originalButtonText;
+                }
+                return;
+            }
+            // Validation End
+
+            try {
+                const response = await fetch('/submit_schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, mobile, email, date, time, duration })
+                });
+
+                const data = await response.json();
+                console.log("Response from backend:", data);
+                
+                if (data.message && data.message.includes("scheduled successfully!")) {
+                    meetingForm.style.display = "none";
+                    // Show success message
+                    const successMessage = document.createElement('div');
+                    successMessage.innerHTML = `
+                        <div class="successMsgStyle">
+                            Thank you for scheduling a meeting with our executive! <br/>
+                            We'll get in touch with you shortly to confirm your appointment.
+                        </div>
+                    `;
+                    meetingForm.parentElement.appendChild(successMessage);
+                    
+                    // Wait 5 seconds, then close chatbox
+                    setTimeout(() => {
+                        clearChat();
+                        const chatContainer = document.getElementById("chat-container");
+                        if (chatContainer) chatContainer.style.display = "none";
+                        const avatar = document.getElementById("chatbot-avatar");
+                        if (avatar) avatar.style.display = "flex";
+                        meetingForm.reset();
+                        successMessage.remove();
+                    }, 5000);
+                } else {
+                    // Re-enable button on error
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.style.opacity = '1';
+                        submitButton.style.cursor = 'pointer';
+                        submitButton.textContent = originalButtonText;
+                    }
+                    // Show error message
+                    alert(data.message || "❌ Error submitting form. Please try again.");
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                // Re-enable button on error
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.style.opacity = '1';
+                    submitButton.style.cursor = 'pointer';
+                    submitButton.textContent = originalButtonText;
+                }
+                alert("❌ Error submitting form. Please try again.");
+            }
+
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        });
+    }, 100);
 }
 }
 
@@ -921,6 +1003,95 @@ else{
 function hideScheduleForm() {
     const form = document.getElementById("schedule-form");
     if (form) form.remove();
+}
+
+// Time Picker Functionality
+function initializeTimePicker() {
+    const timePickerBtn = document.getElementById('time-picker-btn');
+    const timePickerPopup = document.getElementById('time-picker-popup');
+    const timeInput = document.getElementById('time');
+    const pickerHour = document.getElementById('picker-hour');
+    const pickerMinute = document.getElementById('picker-minute');
+    const timePresetBtns = document.querySelectorAll('.time-preset-btn');
+    const applyBtn = document.querySelector('.time-picker-apply');
+    const cancelBtn = document.querySelector('.time-picker-cancel');
+    const closeBtn = document.querySelector('.time-picker-close');
+    
+    if (!timePickerBtn || !timePickerPopup) return;
+    
+    // Open time picker
+    timePickerBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Set current time if time input has value
+        if (timeInput && timeInput.value) {
+            const [hour, minute] = timeInput.value.split(':');
+            if (pickerHour) pickerHour.value = parseInt(hour) || 14;
+            if (pickerMinute) pickerMinute.value = parseInt(minute) || 0;
+        }
+        
+        timePickerPopup.style.display = 'block';
+    });
+    
+    // Close time picker
+    function closeTimePicker() {
+        timePickerPopup.style.display = 'none';
+    }
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeTimePicker);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeTimePicker);
+    
+    // Close on outside click
+    timePickerPopup.addEventListener('click', function(e) {
+        if (e.target === timePickerPopup) {
+            closeTimePicker();
+        }
+    });
+    
+    // Apply time from presets
+    timePresetBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const time = this.getAttribute('data-time');
+            if (timeInput) timeInput.value = time;
+            const [hour, minute] = time.split(':');
+            if (pickerHour) pickerHour.value = parseInt(hour);
+            if (pickerMinute) pickerMinute.value = parseInt(minute);
+        });
+    });
+    
+    // Apply custom time
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function() {
+            if (pickerHour && pickerMinute && timeInput) {
+                const hour = String(pickerHour.value || 0).padStart(2, '0');
+                const minute = String(pickerMinute.value || 0).padStart(2, '0');
+                timeInput.value = `${hour}:${minute}`;
+                closeTimePicker();
+            }
+        });
+    }
+    
+    // Format hour and minute inputs
+    if (pickerHour) {
+        pickerHour.addEventListener('change', function() {
+            let val = parseInt(this.value) || 0;
+            if (val < 0) val = 0;
+            if (val > 23) val = 23;
+            this.value = val;
+        });
+    }
+    
+    if (pickerMinute) {
+        pickerMinute.addEventListener('change', function() {
+            let val = parseInt(this.value) || 0;
+            if (val < 0) val = 0;
+            if (val > 59) val = 59;
+            // Round to nearest 15 minutes
+            val = Math.round(val / 15) * 15;
+            this.value = val;
+        });
+    }
 }
 
 // Submit form handler

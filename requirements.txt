@@ -23,6 +23,9 @@ charset-normalizer==3.4.4
 idna==3.11
 urllib3==2.5.0
 
+# Windows-specific (for Outlook integration)
+pywin32==306; sys_platform == "win32"
+
 # Removed heavy dependencies:
 # - torch, transformers, sentence-transformers (replaced with OpenAI embeddings)
 # - scikit-learn, scipy, joblib (not needed without local ML models)
