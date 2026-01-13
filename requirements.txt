@@ -1,25 +1,30 @@
+# Core Flask dependencies
 Flask==3.1.2
 gunicorn==23.0.0
 python-dotenv==1.2.1
+
+# OpenAI and LangChain (lightweight - no local models)
 openai==2.7.1
 langchain-core==1.0.3
 langchain-community==0.4.1
-langchain-huggingface==1.0.1
 langchain-openai==1.0.2
+
+# FAISS vector store (lightweight, CPU-only)
 faiss-cpu==1.12.0
-sentence-transformers==5.1.2
-torch==2.9.0
-transformers==4.57.1
-tokenizers==0.22.1
+numpy==2.3.4  # Required by faiss-cpu
+
+# OpenAI tokenizer
 tiktoken==0.12.0
-numpy==2.3.4
-scikit-learn==1.7.2
-scipy==1.16.3
-joblib==1.5.2
-threadpoolctl==3.6.0
-huggingface-hub==0.36.0
+
+# HTTP and networking
 requests==2.32.5
 certifi==2025.10.5
 charset-normalizer==3.4.4
 idna==3.11
 urllib3==2.5.0
+
+# Removed heavy dependencies:
+# - torch, transformers, sentence-transformers (replaced with OpenAI embeddings)
+# - scikit-learn, scipy, joblib (not needed without local ML models)
+# - huggingface-hub (not needed without HuggingFace models)
+# - langchain-huggingface (replaced with langchain-openai)

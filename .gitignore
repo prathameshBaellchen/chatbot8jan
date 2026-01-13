@@ -1,0 +1,19 @@
+# Local env
+.env
+
+# Python bytecode / cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments (if any)
+venv/
+env/
+
+# Databases / local state
+*.db
+*.sqlite
+
+# OS cruft
+.DS_Store

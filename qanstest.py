@@ -1,14 +1,6 @@
 import os
-# Reduce thread usage to lower memory/CPU on small instances
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-os.environ.setdefault("OMP_NUM_THREADS", "1")
-os.environ.setdefault("MKL_NUM_THREADS", "1")
-os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
-os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
-
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 import openai
 from dotenv import load_dotenv
 load_dotenv()
@@ -60,12 +52,14 @@ def _initialize_qa():
         print(error_msg)
         raise FileNotFoundError(error_msg)
     
-    print("🔄 Loading embeddings model...")
+    print("🔄 Initializing OpenAI embeddings...")
     try:
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-        print("✅ Embeddings model loaded")
+        # Use OpenAI embeddings instead of local HuggingFace model
+        # This is much lighter - no torch, no local model loading
+        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_KEY)
+        print("✅ OpenAI embeddings initialized")
     except Exception as e:
-        print(f"❌ Error loading embeddings: {e}")
+        print(f"❌ Error initializing OpenAI embeddings: {e}")
         raise
     
     print("🔄 Loading FAISS index...")
