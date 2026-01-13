@@ -887,16 +887,22 @@ function showScheduleForm(event) {
             // Validation End
 
             try {
+                console.log("Submitting form data:", { name, mobile, email, date, time, duration });
+                
                 const response = await fetch('/submit_schedule', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, mobile, email, date, time, duration })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
                 console.log("Response from backend:", data);
                 
-                if (data.message && data.message.includes("scheduled successfully!")) {
+                if (data.success && data.message && (data.message.includes("scheduled successfully") || data.message.includes("Teams meeting scheduled"))) {
                     meetingForm.style.display = "none";
                     // Show success message
                     const successMessage = document.createElement('div');
@@ -923,10 +929,12 @@ function showScheduleForm(event) {
                         submitButton.textContent = originalButtonText;
                     }
                     // Show error message
-                    alert(data.message || "Error submitting form. Please try again.");
+                    const errorMsg = data.message || "Error submitting form. Please try again.";
+                    console.error("Form submission error:", errorMsg);
+                    alert(errorMsg);
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Network/Request error:', error);
                 // Re-enable button on error
                 if (submitButton) {
                     submitButton.disabled = false;
@@ -934,7 +942,7 @@ function showScheduleForm(event) {
                     submitButton.style.cursor = 'pointer';
                     submitButton.textContent = originalButtonText;
                 }
-                alert("Error submitting form. Please try again.");
+                alert("Error submitting form: " + error.message + ". Please check console for details.");
             }
 
             chatDisplay.scrollTop = chatDisplay.scrollHeight;
