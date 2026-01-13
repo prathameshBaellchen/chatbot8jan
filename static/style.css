@@ -15,11 +15,11 @@ body {
     background-color: white;
     border-radius: 10px;
     /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); */
-    display: flex;
+    /*display: flex;*/
     flex-direction: column;
     position: fixed; 
-    bottom: 20px; 
-    right: 20px; 
+    bottom: 0px; 
+    right: 0px; 
     overflow: hidden;
     z-index: 1000;
 }

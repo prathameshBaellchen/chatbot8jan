@@ -28,52 +28,94 @@ app = Flask(__name__)
 def home():
     return render_template('index.html')
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint to verify deployment status."""
+    import os
+    health_status = {
+        'status': 'ok',
+        'checks': {}
+    }
+    
+    # Check responses.json
+    responses_file = os.path.join(os.path.dirname(__file__), "responses.json")
+    health_status['checks']['responses.json'] = os.path.exists(responses_file)
+    
+    # Check softdel_index directory
+    index_dir = os.path.join(os.path.dirname(__file__), "softdel_index")
+    health_status['checks']['softdel_index'] = os.path.exists(index_dir)
+    
+    # Check OPENAI_API_KEY (don't expose the key, just if it exists)
+    api_key = os.getenv("OPENAI_API_KEY")
+    health_status['checks']['OPENAI_API_KEY'] = bool(api_key and api_key.startswith("sk-"))
+    
+    # Check if all checks passed
+    if not all(health_status['checks'].values()):
+        health_status['status'] = 'degraded'
+    
+    return jsonify(health_status)
+
 @app.route('/chat', methods=['POST'])  # URL path http://localhost:5000/chat
 def chat():
-    user_input = request.json.get('user_input', '').lower()
-    print(f"User input: {user_input}")  # Log user input
+    try:
+        user_input = request.json.get('user_input', '').lower()
+        print(f"📥 User input: {user_input}")  # Log user input
 
-    responses = load_responses(file_paths)
-    if not responses:
-        return jsonify({'response': "I cannot start without responses. Please check the JSON file."})
+        responses = load_responses(file_paths)
+        if not responses:
+            print("❌ Responses file not loaded")
+            return jsonify({'response': "I cannot start without responses. Please check the JSON file."})
 
-    # Check for exact matches in JSON responses
-    response = responses.get(user_input)
+        # Check for exact matches in JSON responses
+        response = responses.get(user_input)
 
-    # Check for commands if no exact match
-    if response is None:
-        for keyword, command in commands.items():
-            if keyword in user_input:
-                response = command() if callable(command) else command
-                break
-    # Check scheduling keywords BEFORE AI
-    # List of phrases (full strings or parts of sentences) to detect scheduling intent
-    schedule_strings = [
-        "schedule a call",
-        "book a meeting",
-        "connect with executive",
-        "talk to representative",
-        "schedule a meeting",
-        "i want to schedule a call",
-        "can we have a demo"
-    ]
+        # Check for commands if no exact match
+        if response is None:
+            for keyword, command in commands.items():
+                if keyword in user_input:
+                    response = command() if callable(command) else command
+                    break
+        # Check scheduling keywords BEFORE AI
+        # List of phrases (full strings or parts of sentences) to detect scheduling intent
+        schedule_strings = [
+            "schedule a call",
+            "book a meeting",
+            "connect with executive",
+            "talk to representative",
+            "schedule a meeting",
+            "i want to schedule a call",
+            "can we have a demo"
+        ]
 
-    user_input_lower = user_input.lower()
+        user_input_lower = user_input.lower()
 
-    # Check if user input contains any of the full phrases
-    if any(phrase in user_input_lower for phrase in schedule_strings):
-        response = '📅 Do you want me to schedule a call with our executive? Please provide name, email, phone, and preferred time.'
+        # Check if user input contains any of the full phrases
+        if any(phrase in user_input_lower for phrase in schedule_strings):
+            response = '📅 Do you want me to schedule a call with our executive? Please provide name, email, phone, and preferred time.'
 
-    # Fallback to QA function if still no match
-    if response is None:
-        response = get_qan_answer(user_input)
+        # Fallback to QA function if still no match
+        if response is None:
+            print("🤖 Calling QA function...")
+            try:
+                response = get_qan_answer(user_input)
+                print(f"✅ QA response received: {response[:100]}...")
+            except Exception as e:
+                print(f"❌ Error in QA function: {type(e).__name__}: {e}")
+                import traceback
+                print(f"❌ Traceback:\n{traceback.format_exc()}")
+                response = f"❌ Error processing your request: {type(e).__name__}. Please try again or contact support."
 
-    # Use default response if QA returns nothing
-    if not response:
-        response = responses.get("default", "I'm sorry, I don't understand that.")
+        # Use default response if QA returns nothing
+        if not response:
+            response = responses.get("default", "I'm sorry, I don't understand that.")
 
-    print(f"Bot response: {response}")  # Log bot response
-    return jsonify({'response': response})
+        print(f"📤 Bot response: {response[:100]}...")  # Log bot response
+        return jsonify({'response': response})
+    except Exception as e:
+        print(f"❌ Unexpected error in chat endpoint: {type(e).__name__}: {e}")
+        import traceback
+        print(f"❌ Traceback:\n{traceback.format_exc()}")
+        return jsonify({'response': f"❌ An unexpected error occurred: {type(e).__name__}. Please try again."}), 500
 
 # Initialize DB
 def init_db():
